@@ -1,0 +1,807 @@
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <meta name="theme-color" content="#4F7DC9">
+  <meta charset="UTF-8">
+  <title>Obniz API連携</title>
+  <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source+Code+Pro:400|Roboto:400,300,400italic,500,700|Roboto+Mono">
+  <link rel="stylesheet" href="//fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://storage.googleapis.com/codelab-elements/codelab-elements.css">
+  <style>
+    .success {
+      color: #1e8e3e;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <google-codelab-analytics gaid="UA-49880327-14"></google-codelab-analytics>
+  <google-codelab codelab-gaid="UA-203140854-1"
+                  id="obniz-API"
+                  title="Obniz API連携"
+                  environment="web"
+                  feedback-link="">
+    
+      <google-codelab-step label="概要" duration="5">
+        <h2 is-upgraded><strong>概要</strong></h2>
+<p>ICT総研の2020年度 SNS利用動向に関する調査結果では、日本のSNS利用者は7,975万人（普及率80％）で、私たちの暮らしではSNSの利用が当たり前になっています。</p>
+<p>日常生活とSNSが密接な関係にある都合上、IoTによるデジタルトランスフォーメーション（DX）においてSNSは重要な要素であるといえます。</p>
+<p>今回はスターターキットの発展内容という位置付けでAPI連携のハンズオンで紹介していきます。APIの中でもSNSに重きをおいた以下の4つ内容です。</p>
+<p>また、今回のアプリケーションは画面が必要なくサーバーサイドアプリケーションとなるので、軽量で処理速度が早いNode.jsで実装しています。</p>
+<p>なお、使用する部品は全てObnizのStarter Kitに含まれる部品です。</p>
+<h2 is-upgraded><strong>連携するツール</strong></h2>
+<ul>
+<li>Slack連携</li>
+<li>Weather API (天気予報API)</li>
+<li>Spread Sheet連携</li>
+<li>LINE Notify</li>
+</ul>
+<h2 is-upgraded><strong>難易度</strong></h2>
+<p>Obniz Academyでは、制作物の難易度を以下のように設定しています。</p>
+<ul>
+<li>☆1 初心者向け</li>
+<li>☆2 初心者 ~ 中級者向け</li>
+<li>☆3 中級者向け</li>
+<li>☆4 中級者~上級者向け</li>
+<li>☆5 上級者向け</li>
+</ul>
+<aside class="special"><p><strong>Node.js</strong></p>
+<p>Node.jsとは、JavaScriptをサーバーサイドで動作させることができるプラットフォームです。</p>
+<p>JavaScriptはクライアント側で動作するプログラミング言語ですが、Node.jsを利用することでサーバー側での処理をJavaScriptによって実装することができます。</p>
+<p>ブラウザGoogle Chrome用に開発されたJavaScriptエンジンV8が、サーバ上でプログラムを実行できるように、ファイルやネットワークI/Oなど多くの機能を追加されており、軽量で効率よく多くのリクエストを処理するネットワークアプリケーションの構築ができるプラットフォームになっています。</p>
+<p>Web開発だけでなくスマホアプリ・IoT・機械学習などさまざまな用途にJavaScriptを利用できるメリットがあるため注目を集めています。</p>
+</aside>
+<aside class="special"><p><strong>API</strong></p>
+<p>アプリケーションやソフトウェアの構築と統合 (インテグレーション) に使われるツール、定義、プロトコルです。API は、Application Programming Interface (アプリケーション・プログラミング・インタフェース) の略です。</p>
+<p>API を使用することで、他の製品やサービスの実装方法を知らなくても、利用中の製品やサービスをそれらと通信させることができます。</p>
+</aside>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="IFTTTでGoogle スプレッドシート連携 (難易度: ★☆☆☆☆)" duration="20">
+        <p>製作物</p>
+<ul>
+<li>Googleスプレッドシート連携 温度ロガー</li>
+</ul>
+<p>使用部品</p>
+<ul>
+<li>obniz Board</li>
+<li>温度センサー（Keyestudio_TemperatureSensor）</li>
+<li>IFTTTアカウント</li>
+<li>Googleアカウント</li>
+</ul>
+<aside class="warning"><p><strong>IFTTT: </strong>異なるwebサービスを組み合わせて「もし、○○(This)が起きたら○○(That)を実行する」ということができるサービス。今回は、Googleスプレットシートと連携して、 「もし、obnizが温度データを取得したら(This)Googleスプレットシートに記録する(That)」ために使用。</p>
+</aside>
+<h2 is-upgraded>1. 準備</h2>
+<h3 is-upgraded><strong>1-1. Nodeをインストール (今回はインストール手順やNodeのメリットなどの説明省略)</strong></h3>
+<h3 is-upgraded><strong>1-2. Nodeで使用するライブラリをインストール</strong></h3>
+<pre><code>$ npm init -y # 細かい設定をデフォルトに任せて、実行環境を初期化
+$ npm install obniz # obnizをNode.jsに実装するためのライブラリ
+$ npm install axios # 非同期でHTTP通信を容易に実装するためのライブラリ</code></pre>
+<aside class="special"><p><strong>axios</strong>: axiosとはブラウザやnode.js上で動くPromiseベースのHTTPクライアントです。非同期でHTTP通信を行いたいときに容易に実装できるライブラリ。</p>
+</aside>
+<p>&lt;作業ディレクトリ&gt;</p>
+<p>├── code.js</p>
+<p>├── package-lock.json</p>
+<p>└── package.json</p>
+<h3 is-upgraded><strong>1-3. IFTTTの設定</strong></h3>
+<p>以下URLにアクセスし、「If This」をクリック。</p>
+<p>https://ifttt.com/create</p>
+<p class="image-container"><img style="width: 624.00px" src="img/3788b66be119c1f7.png"></p>
+<p>検索欄に「Webhooks」と入力し、Webhooksをクリック。</p>
+<p class="image-container"><img style="width: 624.00px" src="img/b5d5202f21449703.png"></p>
+<p>「Receive a web request」をクリック。</p>
+<p class="image-container"><img style="width: 624.00px" src="img/2575841762d72224.png"></p>
+<p>Event Nameの欄に「GoogleSheets_temp」と入力し、Create triggerをクリック。</p>
+<p class="image-container"><img style="width: 624.00px" src="img/1152a8adb1418847.png"></p>
+<p>「That」をクリックして、記録先を設定します。</p>
+<p class="image-container"><img style="width: 624.00px" src="img/36cab56a3f34ae34.png"></p>
+<p>検索欄に「GoogleSheets」と入力して、絞られたものをクリック。</p>
+<p class="image-container"><img style="width: 624.00px" src="img/dd20b157a3db8c3f.png"></p>
+<p>「Add row to spreadsheet」をクリック。</p>
+<p class="image-container"><img style="width: 624.00px" src="img/d5f3254459c4e140.png"></p>
+<p>スプレットシートに記載する情報を設定し、「Create action」をクリック。</p>
+<aside class="warning"><p><strong>Spreadsheet name: </strong>スプレットシート名（ここでは「obniz_Googlesheet_temp」）</p>
+<p><strong>Formatted row:</strong> スプレットシートにどのようなデータを書き込むのか設定（ここでは「&#123;&#123;OccurredAt}} ||| &#123;&#123;Value1}} |||&#123;&#123;Value2}} ||| &#123;&#123;Value3}}」）</p>
+<p><strong>Drive folder path: </strong>: Google Driveのどのフォルダに保存するのか設定（ここでは「IFTTT/&#123;&#123;EventName}}」）</p>
+</aside>
+<p class="image-container"><img style="width: 624.00px" src="img/4d2ef8e4e60830cc.png"></p>
+<p>「Continue」をクリック。</p>
+<p class="image-container"><img style="width: 624.00px" src="img/39d42007a62ba8f0.png"></p>
+<p>IFTTTから通知の有無は「Receive notifications when this Applet runs」をオンオフで設定。「Finish」をクリックすることで設定は完了。</p>
+<p class="image-container"><img style="width: 624.00px" src="img/97cb1842cae4d2f.png"></p>
+<h3 is-upgraded><strong>1-4. Webhooksのシークレットキーの取得</strong></h3>
+<p>Webhooksのシークレットキーを取得するためにWebhooksの設定ページ(以下のURL)を開き、右上にある「Documentation」をクリックします。</p>
+<p><a href="https://ifttt.com/maker_webhooks" target="_blank">https://ifttt.com/maker_webhooks</a></p>
+<p>「Your key is」と書かれている後ろの太文字をコピーしてください。後ほど、プログラムの「ifttt_secret_key」の箇所に貼り付けます。</p>
+<p class="image-container"><img style="width: 624.00px" src="img/e7097dfdae06786e.png"></p>
+<h2 is-upgraded>2. プログラム</h2>
+<p>code.jsにスクリプトを貼り付けて実行</p>
+<p>ただし、以下の2箇所は自身の環境に合わせてください。</p>
+<ul>
+<li>2行目 <code>ifttt_secret_key</code>に「1-4. Webhooksのシークレットキーの取得」でコピーしたシークレットキーを貼り付け。</li>
+<li>7行目 <code>OBNIZ_ID</code>は自分のデバイスのobniz_idを記述</li>
+</ul>
+<pre><code>let ifttt_event = &#34;GoogleSheets_temp&#34;;
+let ifttt_secret_key = &#34;ifttt_secret_key&#34;;
+//-----------------------------
+// obniz setting
+//-----------------------------
+const Obniz = require(&#34;obniz&#34;)
+const OBNIZ_ID = &#39;1234-5678&#39;;
+const obniz = new Obniz(OBNIZ_ID);
+obniz.onconnect = async function () {
+  //センシング
+  var sensor = obniz.wired(&#34;Keyestudio_TemperatureSensor&#34;, {
+    signal: 0,
+    vcc: 1,
+    gnd: 2
+  });
+  obniz.onloop = async function(){
+    var temp = await sensor.getWait();
+    console.log(&#34;temperature:&#34; + temp);
+    //送信データ作成
+    //IFTTTリクエスト
+    const axios = require(&#34;axios&#34;)
+    await axios.post(`https://maker.ifttt.com/trigger/${ifttt_event}/with/key/${ifttt_secret_key}`,{
+      value1: temp,
+    })
+    .then(function (response) {
+      console.log(response.data);
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
+    await obniz.wait(10000);// every 10 second
+  }
+};</code></pre>
+<h2 is-upgraded>2. 組み立て</h2>
+<p>温度センサーの信号(signal)、プラス(vcc)、マイナス(gnd)のピンをそれぞれ obniz Boardの0, 1, 2に接続します。</p>
+<h2 is-upgraded>3. 実行</h2>
+<p>node code.jsを実行すると、温度センサが10秒おき温度データを取得し、IFTTTでGoogleスプレットシートへデータを書き込みます。</p>
+<pre><code>$ node code.js</code></pre>
+<aside class="warning"><p><strong>IFTTTが実行されない場合 </strong></p>
+<p>ポーリングの頻度の問題だと思われます。IFTTTの「My Applets」のページから作成したアプレットを開き、「Check now」のボタンを押してください。このボタンを押すことで即実行されます。</p>
+</aside>
+<h2 is-upgraded>4. 解説</h2>
+<h3 is-upgraded><strong>ソースコード解説</strong></h3>
+<p>つまずきそうなポイントに絞って解説していきます。</p>
+<p>17行目</p>
+<pre><code>var temp = await sensor.getWait();</code></pre>
+<aside class="special"><p>温度センサ（Keyestudio_TemperatureSensor）にはobniz社によってonchangeと[await]getWaitの関数が用意されています。</p>
+<p>onchange：温度センサの値に変化があった場合にcallback関数を呼び出します。間隔の指定はできません。温度は摂氏で返されます。</p>
+<p>[await]getWait：温度センサの値を一度だけ取得します。温度は摂氏で返されます。</p>
+</aside>
+<p>16行目~32行目</p>
+<pre><code>obniz.onloop = async function(){
+...
+  await obniz.wait(10000);// every 10 second
+}</code></pre>
+<p><code>onloop</code>関数の第一引数で指定したコールバック関数を第二引数で指定した時間(ミリ秒)ごとに実行するという処理です。(今回は10秒ごと)</p>
+<aside class="warning"><p><strong>onloopによるループとrepeatによるループの違い</strong></p>
+<p>以下の書き方は同じ意味。</p>
+<p>① onloopによるループ</p>
+<p> obniz.onloop = async () =&gt; {</p>
+<p>  // メイン処理</p>
+<p>  await obniz.wait(30000);</p>
+<p> };</p>
+<p>② repeatによるループ</p>
+<p> obniz.repeat(async () =&gt; {</p>
+<p>  // メイン処理</p>
+<p> }, 30000);</p>
+</aside>
+<p>21行目~22行目</p>
+<pre><code>const axios = require(&#34;axios&#34;)
+await axios.post(`https://maker.ifttt.com/trigger/${ifttt_event}/with/key/${ifttt_secret_key}`,{
+ value1: temp,
+})</code></pre>
+<p><code>axios</code>の<code>post</code>メソッドを使うために、<code>require</code>(‘モジュール名&#39;)と記載し、モジュール名で指定したモジュールを拡張機能として呼び出す。</p>
+<p>Axiosのpostメソッドは第1引数：どこに送るか（url）、第2引数：送りたいデータ（data）、第3引数：追加設定（config）と指定する。</p>
+<p>今回は、IFTTTで設定した「value1」に温度データ「temp」をPOSTしている。</p>
+<p>25行目~30行目</p>
+<pre><code>.then(function (response) {
+ console.log(response.data);
+})
+.catch(function (error) {
+ console.log(error);
+});</code></pre>
+<p><code>「.then()」で通信が成功した際の処理を書き、「.catch()」でエラー時の処理を書く。</code></p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Slack連携 (難易度: ★★☆☆☆)" duration="20">
+        <p>製作物</p>
+<ul>
+<li>ボタンによる来客のSlack通知アプリケーション</li>
+</ul>
+<p>使用部品</p>
+<ul>
+<li>obniz Board</li>
+<li>Keyestudio_Button</li>
+<li>Slackアカウント</li>
+</ul>
+<h2 is-upgraded>1. 準備</h2>
+<h3 is-upgraded><strong>1-1. Nodeをインストール (今回はインストール手順やNodeのメリットなどの説明省略)</strong></h3>
+<h3 is-upgraded><strong>1-2. Nodeで使用するライブラリをインストール</strong></h3>
+<pre><code>$ npm init -y # 細かい設定をデフォルトに任せて、実行環境を初期化
+$ npm install obniz
+$ npm install -D typescript @types/node # typescriptを使用するためにインストール
+$ npm install slack-notify # slack通知を容易に実装するためのライブラリ</code></pre>
+<aside class="warning"><p><strong>--save-dev (または-D)オプションの役割</strong></p>
+<p>自動で package.jsonの devDependencies にインストールするライブラリが追記されます。</p>
+<p>そして dependencies には追記されません。</p>
+<p>git cloneでクローンしてきて、必要なパッケージをインストールするときに</p>
+<p>npm install --productionとすると、devDependencies内のライブラリはインストールされません。</p>
+<p>dependencies に入っているとインストールされてしまうので、</p>
+<p>githubにソースを公開するときは使い分けると良いです。</p>
+</aside>
+<h3 is-upgraded><strong>1-3. ソース保存、コンパイル出力先のディレクトリを作成</strong></h3>
+<pre><code>$ mkdir dist # 自動コンパイル後に自動生成されるjavascriptファイルの出力先ディレクトリ
+$ mkdir src # typescriptファイルの作成ディレクトリ
+$ touch src/main.ts # 今回のメインの実行ファイル作成</code></pre>
+<p>作業ディレクトリ</p>
+<p>├── dist</p>
+<p>├── node_modules</p>
+<p>├── package-lock.json</p>
+<p>├── package.json</p>
+<p>├── src</p>
+<p>    └── main.ts</p>
+<h3 is-upgraded><strong>1-4. Typescriptコンパイラの設定を作成</strong></h3>
+<pre><code>$ tsc --init # tsconfig.jsonが自動生成される</code></pre>
+<p>tsconfig.jsonの中身を置き換え</p>
+<pre><code>{
+    &#34;compilerOptions&#34;: {
+      &#34;sourceMap&#34;: true,
+      &#34;outDir&#34;: &#34;dist&#34;, 
+      &#34;target&#34;: &#34;es6&#34;,
+      &#34;module&#34;: &#34;commonjs&#34;,
+      &#34;moduleResolution&#34;: &#34;node&#34;,
+      &#34;esModuleInterop&#34;: true, // import xxx from &#34;xxx&#34;を使用可能にする
+    }
+  }</code></pre>
+<h3 is-upgraded><strong>1-5. package.jsonを編集し、npmのbuild, start, cleanコマンドのタスクを設定</strong></h3>
+<p>筆者のpackage.json</p>
+<pre><code>{
+  &#34;name&#34;: &#34;slack-connection-test&#34;,
+  &#34;version&#34;: &#34;1.0.0&#34;,
+  &#34;description&#34;: &#34;&#34;,
+  &#34;main&#34;: &#34;dist/main.js&#34;,
+  &#34;scripts&#34;: {
+    &#34;build&#34;: &#34;tsc&#34;,
+    &#34;start&#34;: &#34;node dist/main.js&#34;,
+    &#34;clean&#34;: &#34;rm -rf dist&#34;
+  },
+  &#34;keywords&#34;: [],
+  &#34;author&#34;: &#34;&#34;,
+  &#34;license&#34;: &#34;ISC&#34;,
+  &#34;dependencies&#34;: {
+    &#34;obniz&#34;: &#34;^3.16.0&#34;,
+    &#34;slack-notify&#34;: &#34;^0.1.7&#34;
+  },
+  &#34;devDependencies&#34;: {
+    &#34;@types/node&#34;: &#34;^16.7.1&#34;,
+    &#34;typescript&#34;: &#34;^4.3.5&#34;
+  }
+}</code></pre>
+<p>これで、以下のコマンドが使用できる</p>
+<pre><code>$ npm run build # TypeScript -&gt; JavaScript に変換
+
+$ npm run start # コンパイルされたJavaScriptを実行
+
+$ npm run clean # 生成されたファイルを削除</code></pre>
+<p>作業ディレクトリ</p>
+<p>├── dist</p>
+<p>├── node_modules</p>
+<p>├── package-lock.json</p>
+<p>├── package.json</p>
+<p>├── src</p>
+<p>│   └── main.ts</p>
+<p>└── tsconfig.json</p>
+<h3 is-upgraded><strong>1-6. incoming-web-hookをSlackアプリに追加する。</strong></h3>
+<p>以下URLにアクセスし、また、発行されるWebhook URLをメモしておく。</p>
+<p>https://slack.com/services/new/incoming-webhook</p>
+<p class="image-container"><img style="width: 624.00px" src="img/267a1da5f2003665.png"></p>
+<p>これにて、準備完了。</p>
+<h2 is-upgraded>2. プログラム</h2>
+<p>src/main.tsにスクリプトを貼り付けて実行</p>
+<p>ただし、以下の2箇所は自身の環境に合わせてください。</p>
+<p>3行目のOBNIZ_IDは自分のデバイスのobniz_idを記述</p>
+<p>23行目のurlは、準備1-6でメモしたWebhook URLに書き換えてください。</p>
+<pre><code>import Obniz from &#39;obniz&#39;;
+
+const OBNIZ_ID = &#39;1234-5678&#39;;
+
+const obniz = new Obniz(OBNIZ_ID);
+
+obniz.onconnect = async function () {
+    var button = obniz.wired(&#34;Keyestudio_Button&#34;, {
+        signal: 0,
+        vcc: 1,
+        gnd: 2
+    });
+    button.onchange = function (pressed: boolean) {
+        console.log(&#34;pressed &#34; + pressed);
+        if (pressed == false) {
+            sendSlackAlert(&#34;チャイム&#34;, &#34;:speaking_head_in_silhouette:&#34;, &#34;お客さんが来たよ!&#34;, &#34;#random&#34;);
+            sendSlackAlert(&#34;来客通知Bot&#34;, &#34;:monkey_face:&#34;, &#34;&lt;!here&gt; お客さんが来客するので、元気よく挨拶をお願いします。&#34;, &#34;#general&#34;);
+        }
+    }
+}
+
+function sendSlackAlert(username: string, icon: string, msg: string, channel: string) {
+    var url = &#34;https://hooks.slack.com/services/xxxxx/xxxxx/xxxxx&#34;;
+
+    // Require module:
+    var slack = require(&#39;slack-notify&#39;)(url);
+ 
+    // Everything is overridable:
+    slack.send({
+        username: username, // 通知時に表示されるユーザー名
+        icon_emoji: icon, // 通知時に表示されるアイコン
+        text: msg, // 投稿メッセージ
+        channel: channel
+    });
+ 
+    slack.onError = function (err: string) {
+        console.log(&#39;API error:&#39;, err);
+    };
+}</code></pre>
+<h2 is-upgraded>3. 組み立て</h2>
+<p>ボタンのsignal, vcc, gndのピンをそれぞれobniz Boardのピン番号0, 1, 2に接続する。</p>
+<h2 is-upgraded>4. 実行</h2>
+<p>npm run startまで実行した後に、スイッチを押すと、Slackに通知が来る。</p>
+<pre><code>$ npm run clean
+$ npm run build
+$ npm run start</code></pre>
+<p class="image-container"><img style="width: 624.00px" src="img/11a653ec9b8ea722.png"></p>
+<p class="image-container"><img style="width: 624.00px" src="img/9fddf0c7c4433c54.png"></p>
+<h2 is-upgraded>5. 解説</h2>
+<h3 is-upgraded><strong>Node.jsとは</strong></h3>
+<p>​​</p>
+<p>V8 JavaScriptエンジン上に構築されたJavaScript実行環境の1つ。</p>
+<p>「サーバーサイドJavaScript」と呼ばれたりもする。</p>
+<p>ちなみに、Google Chromeにも採用されている。</p>
+<aside class="special"><p><strong>サーバーサイド</strong>: サーバー側でプログラムを実行したりデータを管理したりすること。(PHP、Ruby、Pythonなど)</p>
+<p><strong>クライアントサイド:</strong> クライアント側で実行される操作・処理(JavaScriptやCSSなど)</p>
+</aside>
+<h3 is-upgraded><strong>ソースコード解説</strong></h3>
+<p>つまずきそうなポイントに絞って解説していきます。</p>
+<p>13行目~19行目</p>
+<pre><code>    button.onchange = function (pressed: boolean) {
+        console.log(&#34;pressed &#34; + pressed);
+        if (pressed == false) {
+            sendSlackAlert(&#34;チャイム&#34;, &#34;:speaking_head_in_silhouette:&#34;, &#34;お客さんが来たよ!&#34;, &#34;#random&#34;);
+            sendSlackAlert(&#34;来客通知Bot&#34;, &#34;:monkey_face:&#34;, &#34;&lt;!here&gt; お客さんが来客するので、元気よく挨拶をお願いします。&#34;, &#34;#general&#34;);
+        }
+    }</code></pre>
+<p>Onchangeイベントは、ボタンを押した時、もしくは離した時に発火します。</p>
+<p>ボタンを押して、離した後にsendToSlack(&#34;お客さんが来たよ!&#34;)を実行します。</p>
+<p>にsendToSlackの解説は後に記述しています。</p>
+<p>なお、slack-notifyの使い方からの説明はしないので、気になる人は、以下のソースページをみると良いです。</p>
+<p><a href="https://github.com/andrewchilds/slack-notify" target="_blank">https://github.com/andrewchilds/slack-notify</a></p>
+<p>slack API仕様を知りたい人は公式ドキュメントを参照してください。</p>
+<p><a href="https://api.slack.com/messaging/composing/layouts#attachments" target="_blank">https://api.slack.com/messaging/composing/layouts#attachments</a></p>
+<p>22行目~39行目</p>
+<p>sendSlackAlert</p>
+<p>第一引数: slack通知を行うBotのユーザー名</p>
+<p>第二引数: slack通知を行うBotのアイコン</p>
+<p>第三引数: slack通知を行うBotの送信メッセージ</p>
+<p>第四引数: slack通知を行うBotの送信先チャンネル</p>
+<pre><code>function sendSlackAlert(username: string, icon: string, msg: string, channel: string) {
+    var url = &#34;https://hooks.slack.com/services/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&#34;;
+
+    // Require module:
+    var slack = require(&#39;slack-notify&#39;)(url);
+ 
+    // Everything is overridable:
+    slack.send({
+        username: username, // 通知時に表示されるユーザー名
+        icon_emoji: icon, // 通知時に表示されるアイコン
+        text: msg, // 投稿メッセージ
+        channel: channel
+    });
+ 
+    slack.onError = function (err: string) {
+        console.log(&#39;API error:&#39;, err);
+    };
+}</code></pre>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Weather APIで天気情報取得 (難易度: ★★★☆☆)" duration="10">
+        <p>製作物</p>
+<ul>
+<li>天気によってLED信号の色を変えるアプリケーション</li>
+</ul>
+<p>使用部品</p>
+<ul>
+<li>obniz Board</li>
+<li>LED信号</li>
+</ul>
+<h2 is-upgraded>1. 準備</h2>
+<p>slack連携の1-1から1-5までの時と同様の準備をする。</p>
+<p>ただし、</p>
+<p><code>$ npm install slack-notify</code> は不要</p>
+<p><code>$ npm install node-fetch</code> が必要</p>
+<p>最後に、以下URLからアカウントを作成し、APIキーを発行する。</p>
+<p>発行したキーはメモしておく。</p>
+<p><a href="https://home.openweathermap.org/api_keys" target="_blank">https://home.openweathermap.org/api_keys</a></p>
+<p class="image-container"><img style="width: 624.00px" src="img/5dd1de99169304cb.png"></p>
+<p>&lt;作業ディレクトリ&gt;</p>
+<p>├── dist</p>
+<p>├── package-lock.json</p>
+<p>├── package.json</p>
+<p>├── src</p>
+<p>│   └── main.ts</p>
+<p>└── tsconfig.json</p>
+<h2 is-upgraded>2. プログラム</h2>
+<p>src/main.tsにスクリプトを貼り付けて実行</p>
+<p>ただし、以下の2箇所は自身の環境に合わせてください。</p>
+<p>1行目のAPIKEYは自分の発行したAPIキーに書き換えてください</p>
+<p>26行目のOBNIZ_IDは、自分のデバイスのobniz_idを記述</p>
+<pre><code>const APIKEY = &#34;メモしたAPIキー&#34;;
+
+const RED_WEATHERS = [
+  &#34;Rain&#34;,
+  &#34;Snow&#34;,
+  &#34;Thunderstorm&#34;,
+  &#34;Drizzle&#34;,
+  &#34;Fog&#34;,
+  &#34;Squall&#34;
+];
+const YELLOW_WEATHERS = [
+  &#34;Clouds&#34;,
+  &#34;Mist&#34;,
+  &#34;Smoke&#34;,
+  &#34;Dust&#34;,
+  &#34;Haze&#34;,
+  &#34;Sand&#34;,
+  &#34;Ash&#34;,
+  &#34;Tornado&#34;
+];
+const GREEN_WEATHERS = [&#34;Clear&#34;];
+
+import Obniz from &#39;obniz&#39;;
+const fetch = require(&#34;node-fetch&#34;);
+
+const OBNIZ_ID = &#39;1234-5678&#39;;
+
+const obniz = new Obniz(OBNIZ_ID);
+obniz.onconnect = async () =&gt; {
+  let light = obniz.wired(&#34;Keyestudio_TrafficLight&#34;, {
+    gnd: 0,
+    green: 1,
+    yellow: 2,
+    red: 3
+  });
+
+  obniz.repeat(async () =&gt; {
+    //現在の天気データ呼び出し
+    let data = await (await fetch(
+      `http://api.openweathermap.org/data/2.5/weather?q=Tokyo,jp&amp;appid=${APIKEY}`
+    )).json();
+    console.log(data);
+
+    let currentWeather = data.weather[0].main;
+
+    if (currentWeather === undefined || currentWeather === null) {
+      light.red.off();
+      light.yellow.off();
+      light.green.off();
+      console.log(&#34;no data&#34;);
+      return;
+    }
+
+    if (await isMatched(RED_WEATHERS, currentWeather)) {
+      light.single(&#34;red&#34;);
+    } else if (await isMatched(YELLOW_WEATHERS, currentWeather)) {
+      light.single(&#34;yellow&#34;);
+    } else if (await isMatched(GREEN_WEATHERS, currentWeather)) {
+      light.single(&#34;green&#34;);
+    } else {
+      light.red.off();
+      light.yellow.off();
+      light.green.off();
+      console.log(&#34;no data&#34;);
+    }
+    if (obniz.display !== undefined) {
+      obniz.display.clear();
+      obniz.display.print(currentWeather);
+    }
+  }, 30000);
+};
+
+async function isMatched(array: Array&lt;string&gt;, _currentWeather: string | null) {
+  for await (let weatherName of array) {
+    if (_currentWeather === weatherName) {
+      return true;
+    }
+  }
+  return false;
+}</code></pre>
+<h2 is-upgraded>3. 組み立て</h2>
+<p>LED信号のGND, G(green), Y(yellow), R(red)のピンがobniz Boardの0, 1, 2, 3と繋がるように接続します。</p>
+<h2 is-upgraded>4. 実行</h2>
+<p>npm run startまで実行すると、指定した地域のリアルタイムの天気がobnizディスプレイに表示されます。また、晴れなら緑色、曇りなら黄色、雨なら赤色のLEDが光ります。</p>
+<pre><code>$ npm run clean
+$ npm run build
+$ npm run start</code></pre>
+<h2 is-upgraded>5. 解説</h2>
+<h3 is-upgraded><strong>ソースコード解説</strong></h3>
+<p>つまずきそうなポイントに絞って解説していきます。</p>
+<p>37~66行目:</p>
+<pre><code>obniz.repeat(async () =&gt; {
+  ...
+}, 30000);</code></pre>
+<p><code>repeat</code>関数の第一引数で指定したコールバック関数を第二引数で指定した時間(ミリ秒)ごとに実行するという処理です。(今回は30秒ごと)</p>
+<p>javacriptの<code>setInterval</code>との違いは、obnizクラウドとの接続が切れたら自動的に停止してくれるところです。</p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="LINE Notify (難易度: ★★★☆☆)" duration="30">
+        <p>製作物</p>
+<ul>
+<li>郵便物が届いたらLINEにお知らせアプリケーション</li>
+</ul>
+<p>使用部品</p>
+<ul>
+<li>obniz Board</li>
+<li>距離センサー（Obniz Starter Kit）</li>
+<li>電源 (モバイルバッテリーなど)</li>
+<li>LINEアカウント</li>
+</ul>
+<aside class="warning"><p><strong>LINE Notify: </strong>Webサービスと連携すると、LINEが提供する公式アカウント「LINE Notify」から通知を受信する事ができるサービスです。また、複数のサービスと連携でき、グループでも通知を受信することが可能です。</p>
+</aside>
+<h2 is-upgraded>1. 準備</h2>
+<h3 is-upgraded><strong>1-1. Nodeをインストール (今回はインストール手順やNodeのメリットなどの説明省略)</strong></h3>
+<h3 is-upgraded><strong>1-2. Nodeで使用するライブラリをインストール</strong></h3>
+<pre><code>$ npm init -y # 細かい設定をデフォルトに任せて、実行環境を初期化
+$ npm install obniz # obnizをNode.jsに実装するためのライブラリ
+$ npm install Request # 手軽に HTTP リクエストを発行するためのモジュール</code></pre>
+<p>&lt;作業ディレクトリ&gt;</p>
+<p>├── index.js</p>
+<p>├── package-lock.json</p>
+<p>└── package.json</p>
+<h3 is-upgraded><strong>1-3. LINE Notifyの設定</strong></h3>
+<p>以下URLにアクセスしログインした後、マイページを開く。</p>
+<p><a href="https://notify-bot.line.me/ja/" target="_blank">https://notify-bot.line.me/ja/</a></p>
+<p class="image-container"><img style="width: 624.00px" src="img/15dbd1b54dfa656e.png"></p>
+<p>マイページをスクロールし、「アクセストークンの発行(開発者向け) 」という項目の「トークンを発行する」ボタンをクリック。</p>
+<p class="image-container"><img style="width: 624.00px" src="img/78340b7adc287bad.png"></p>
+<p>LINE通知の際に表示されるトークン名を入力し、 「1:1でLINE Notifyから通知を受け取る」を選択。（ここではトークン名を「posted」としてます。）</p>
+<p class="image-container"><img style="width: 624.00px" src="img/a4cafa50593d0606.png"></p>
+<p>「発行する」をクリックすると以下のようにトークンが表示されるので、紛失しないように控えてください。</p>
+<p>控えたトークンはコードの5行目&#34; LINE_NOTIFY_TOKEN_HERE &#34;の箇所に書き換えます。</p>
+<p>※このページを離れるとトークンを確認することが出来なくなります。</p>
+<p class="image-container"><img style="width: 624.00px" src="img/c4fb0cfd54bcde3d.png"></p>
+<p>最後に、LINEのアプリケーションから「LINE Notify」のアカウントを友達登録してください。通知は「LINE Notify」のアカウントから届きます。</p>
+<h2 is-upgraded>2. プログラム</h2>
+<p>code.jsにスクリプトを貼り付けて実行</p>
+<p>ただし、以下の2箇所は自身の環境に合わせてください。</p>
+<ul>
+<li>5行目 <code>LINE_NOTIFY_TOKEN_HERE</code>に「1-3. LINE Notifyの設定」で控えたトークンを貼り付け。</li>
+<li>26行目 <code>OBNIZ_ID</code>は自分のデバイスのobniz_idを記述</li>
+</ul>
+<pre><code>const request = require(&#34;request&#34;),
+      Obniz = require(&#34;obniz&#34;);
+
+const LINE_NOTIFY_URL = &#34;https://notify-api.line.me/api/notify&#34;;
+const TOKEN = &#34;LINE_NOTIFY_TOKEN_HERE&#34;
+
+const POSTED_THOREHOLD = 2.0;//しきい値
+const MESSAGE = &#34;郵便物が投函されました。&#34;;
+
+const HEADERS = {
+  &#34;Content-Type&#34;: &#34;application/x-www-form-urlencoded&#34;,
+  Authorization: &#34;Bearer &#34; + TOKEN
+};
+
+const OPTIONS = {
+  url: LINE_NOTIFY_URL,
+  method: &#34;POST&#34;,
+  headers: HEADERS,
+  json: true,
+  form: {
+    message: MESSAGE
+  }
+};
+
+let distanceVals = [];
+const OBNIZ_ID = &#39;1234-5678&#39;;
+const obniz = new Obniz(OBNIZ_ID);
+obniz.onconnect = async function () {
+  obniz.display.clear();
+  let disSensor = obniz.wired(&#34;HC-SR04&#34;, {
+    gnd: 0,
+    echo: 1,
+    trigger: 2,
+    vcc: 3
+  });
+  let rawDistance = 0;
+  let changeDiffAbs = 0;
+
+  rawDistance = await disSensor.measureWait();
+  await arrangeArray(distanceVals, rawDistance);
+
+  obniz.onloop = async () =&gt; {
+    rawDistance = await disSensor.measureWait();
+    if (!rawDistance) {
+        return
+    }
+    await console.log(`測定値: ${rawDistance} mm`);//測定値
+    changeDiffAbs = await calChangeDiffAbs(distanceVals, rawDistance);
+
+    if (changeDiffAbs &lt; POSTED_THOREHOLD || Number.isNaN(changeDiffAbs)) {
+      return;
+    }
+    await request(OPTIONS, async (error, response, body) =&gt; {
+      console.log(body);
+      if (error) {
+        console.log(error);
+      }
+    });
+    await obniz.wait(300);//300msごとにonloop
+  }
+};
+
+async function arrangeArray(arr, val) {
+  const ARR_LIMIT_NUM = 20;//配列の最大の長さ
+
+  await arr.push(val);
+  if (arr.length &gt; ARR_LIMIT_NUM) {
+    await arr.shift();
+  }
+}
+
+async function calPrevChangeAve(arr) {
+  let prevChanges = [];
+
+  for (let i = 0; i &lt; arr.length - 1; i++) {
+    await prevChanges.push(((arr[i + 1] - arr[i]) / 300) * 10);
+  }
+
+  let denoNum = prevChanges.length;
+  let total = await prevChanges.reduce((sum, data) =&gt; {
+    return sum + data;
+  }, 0);
+
+  return total / denoNum;//0.01sあたりの平均変化量
+}
+
+async function calChangeDiffAbs(arr, val) {
+  let prevVal = arr[arr.length - 1];
+  let currentChange = ((prevVal - val) / 300) * 10;//0.01sあたりの変化量
+  let prevChangeAve = await calPrevChangeAve(arr);
+  let diff = await Math.abs(prevChangeAve - currentChange);//0.01sあたりの平均変化量-0.01sあたりの変化量の絶対値
+
+  await arrangeArray(arr, val);
+
+  return diff;
+}</code></pre>
+<h2 is-upgraded>2. 組み立て</h2>
+<p>距離センサのVcc, Trig, Echo, Gndのピンがobniz Boardの0, 1, 2, 3と繋がるように接続。</p>
+<h2 is-upgraded>3. 実行</h2>
+<p>参考動画の様にポストの天井などに設置し、node index.jsを実行すると、距離センサーが0.3秒毎に距離を測定し始めます。郵便物が届くごとに、LINE Notifyから通知が来るようになります。</p>
+<p>うまく反応しない時は、7行目の<code>POSTED_THOREHOLD</code>の値を調整してみてください。小さくすると反応が良くなります。</p>
+<pre><code>$ node index.js</code></pre>
+<h2 is-upgraded>4. 解説</h2>
+<h3 is-upgraded><strong>ソースコード解説</strong></h3>
+<p>つまずきそうなポイントに絞って解説していきます。</p>
+<p>42行目~60行目</p>
+<pre><code>obniz.onloop = async () =&gt; {
+ rawDistance = await disSensor.measureWait();
+ if (!rawDistance) {
+  return
+ }
+ await console.log(`測定値: ${rawDistance} mm`);//測定値
+ changeDiffAbs = await calChangeDiffAbs(distanceVals, rawDistance);
+
+ if (changeDiffAbs &lt; POSTED_THOREHOLD || Number.isNaN(changeDiffAbs)) {
+  return;
+ }
+ await request(OPTIONS, async (error, response, body) =&gt; {
+  console.log(body);
+  if (error) {
+   console.log(error);
+  }
+ });
+ await obniz.wait(300);//300msごとにonloop
+}</code></pre>
+<p><code>obniz.onloop</code>内で行われているプログラムについての説明します。</p>
+<p><code>rawDistance</code> は、距離の単位 mm で距離を計測。測定値。</p>
+<p><code>changeDiffAbs</code> (詳細は以下で説明)は、「0.01sあたりの平均変化量と、0.01sあたりの測定値の差分」です。</p>
+<p><code>POSTED_THOREHOLD</code>は、しきい値で、今回は2mmに設定しています。</p>
+<p>if文で、左辺のオペランド(<code>changeDiffAbs</code>)が右辺(<code>POSTED_THOREHOLD</code>)のオペランドより小さい場合、もしくは <code>changeDiffAbs</code> が<code>NaN</code>の場合は <code>true</code> が返され、<code>onloop</code> に戻す。</p>
+<p>false の場合は、オプションに記述した設定を <code>request()</code>メソッドで実行され、LINE Notifyから通知が来ます。</p>
+<p>この一連のプログラムを0.03s毎に行っています。</p>
+<p>63行目~70行目</p>
+<pre><code>async function arrangeArray(arr, val) {
+ const ARR_LIMIT_NUM = 20;//配列の最大の長さ
+
+ await arr.push(val);
+ if (arr.length &gt; ARR_LIMIT_NUM) {
+  await arr.shift();
+ }
+}</code></pre>
+<p><code>arrangeArray</code>関数が行っている処理についての説明します。</p>
+<p>配列の最大の長さを20に設定し、配列の末尾に要素を追加しています。</p>
+<p>20を超える場合は<code>shift</code>関数で配列から最初の要素を取り除く処理を行っています。</p>
+<aside class="special"><p><strong>arr.push()</strong>：push() メソッドは、配列の末尾に 1 つ以上の要素を追加することができる。また戻り値として新しい配列の要素数を返す。</p>
+</aside>
+<aside class="special"><p><strong>arr.shift()</strong>：shift() メソッドは、配列から最初の要素を取り除き、その要素を返す。このメソッドは配列の長さを変える。</p>
+<p>shift メソッドは 0 番目の添え字の要素を取り除き、続く添え字の値を小さい方向にずらす。そして、削除された値を返す。length プロパティが 0 の場合、undefined を返す。</p>
+</aside>
+<p>72行目~85行目</p>
+<pre><code>async function calPrevChangeAve(arr) {
+ let prevChanges = [];
+
+ for (let i = 0; i &lt; arr.length - 1; i++) {
+  await prevChanges.push(((arr[i + 1] - arr[i]) / 300) * 10);
+ }
+
+ let denoNum = prevChanges.length;
+ let total = await prevChanges.reduce((sum, data) =&gt; {
+  return sum + data;
+ }, 0);
+
+ return total / denoNum;//0.01sあたりの平均変化量
+}</code></pre>
+<p><code>calPrevChangeAve</code>関数が行っている処理についての説明します。</p>
+<p><code>For</code>文内では、配列の前後の要素の差分を計算し、0.01sあたりの変化量を <code>prevChanges</code> の末尾に追加をしています。</p>
+<p><code>denoNum</code> は、<code>prevChanges</code> の配列の要素の数</p>
+<p><code>total</code>は、 <code>reduce</code>関数で配列に含まれるすべての要素の値を合計した合計値。</p>
+<p><code>denoNum</code> と <code>total</code> のから、0.01s平均変化量を算出する関数。</p>
+<aside class="special"><p><strong>arr.reduce(callback,[initialValue])</strong>：reduce()メソッドは配列に対して関数を適用し、その処理によって配列の各値を(左から右に)一つの値にまとめる。ここでは、配列に含まれるすべての要素の値を合計し、その合計値を返す。</p>
+</aside>
+<p>87行目~96行目</p>
+<pre><code>async function calChangeDiffAbs(arr, val) {
+  let prevVal = arr[arr.length - 1];
+  let currentChange = ((prevVal - val) / 300) * 10;//0.01sあたりの変化量
+  let prevChangeAve = await calPrevChangeAve(arr);
+  let diff = await Math.abs(prevChangeAve - currentChange);//0.01sあたりの平均変化量-0.01sあたりの変化量の絶対値
+
+  await arrangeArray(arr, val);
+
+  return diff;
+}</code></pre>
+<p><code>calChangeDiffAbs</code>関数が行っている処理についての説明。</p>
+<p><code>prevVal</code> は、配列の最後の要素を取得。</p>
+<p><code>currentChang</code> は、0.01sあたりの変化量</p>
+<p><code>prevChangeAve</code> は、0.01s平均変化量</p>
+<p><code>Diff</code> は0.01sあたりの平均変化量と、0.01sあたりの測定値の差分の絶対値</p>
+<p><code>arrangeArray</code>は上で説明したように配列を追加する処理を行っています。</p>
+<aside class="special"><p><strong>Math.abs()</strong>：Math.abs()は引数（数値）の絶対値を返す。abs() は Math オブジェクトの静的メソッド。</p>
+<p>空のオブジェクト、複数のメンバーを持つ配列、数値でない文字列、 undefined、 空の変数を渡すと、 NaN を返します。 null を渡すと空文字列を返し、空の配列は 0 を返す。</p>
+</aside>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="いかがでしたか？" duration="1">
+        <p>今回はObniz Starter Kitの発展として、API連携やNode.js、TypeScriptについて触れてきました。Obnizを活用したプロダクト開発も見えていたのではないでしょうか？</p>
+<p>IoTは様々な領域の知識が必要となりますが、IoT開発を楽しむことがIoT開発に慣れるための第一歩です。</p>
+<p>このサイトでは、様々なアプローチで部品や制御モデルを用いたIoT開発コンテンツをわかりやすく紹介していきます。</p>
+<p>また、お困り事や、相談したい事などありましたら、大小問わずお気軽にお問い合わせください。サポートさせて頂きます。</p>
+
+
+      </google-codelab-step>
+    
+  </google-codelab>
+
+  <script src="https://storage.googleapis.com/codelab-elements/native-shim.js"></script>
+  <script src="https://storage.googleapis.com/codelab-elements/custom-elements.min.js"></script>
+  <script src="https://storage.googleapis.com/codelab-elements/prettify.js"></script>
+  <script src="https://storage.googleapis.com/codelab-elements/codelab-elements.js"></script>
+  <script src="//support.google.com/inapp/api.js"></script>
+
+</body>
+</html>
